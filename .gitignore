@@ -1,0 +1,6 @@
+source/
+data/
+server/private/
+server/.vercel/
+.env*
+validation.json
