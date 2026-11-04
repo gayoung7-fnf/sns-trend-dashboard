@@ -11,7 +11,7 @@
   const parts=[];
   for(let i=0;i<entry.parts;i++){
    message(entry.name+' 다운로드 중… '+(i+1)+'/'+entry.parts);
-   const response=await fetch(apiBase+'/api/data?id='+encodeURIComponent(entry.id)+'&part='+i);
+   const response=await fetch(apiBase+'/api/data?id='+encodeURIComponent(entry.id)+'&part='+i+'&v='+encodeURIComponent(entry.sha256));
    if(!response.ok)throw Error('HTTP '+response.status);
    parts.push(await response.blob());
   }
