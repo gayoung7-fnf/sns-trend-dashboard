@@ -1,48 +1,42 @@
-(async function () {
+(async()=>{
  'use strict';
  document.documentElement.classList.add('pages-mode');
- const box = document.createElement('div');box.id='pagesLoadStatus';box.setAttribute('role','status');box.setAttribute('aria-live','polite');document.body.append(box);
- const apiBase=String(window.DASHBOARD_CONFIG?.apiBase||'').replace(/\/$/,'');
- const failures=[];const results=[];
- const state=window.PagesLoadState={status:'loading',results,failures};
- const message=text=>{box.textContent=text;};
- async function load(entry){
-  message(entry.name+' 데이터 다운로드 중…');
+ const status=document.createElement('div');status.id='pagesLoadStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');document.body.append(status);
+ const state=window.PagesLoadState={status:'loading',results:[],failures:[]};
+ const base=String(window.DASHBOARD_CONFIG?.apiBase||'').replace(/\/$/,'');
+ const message=text=>status.textContent=text;
+ async function download(entry){
   const parts=[];
   for(let i=0;i<entry.parts;i++){
    message(entry.name+' 다운로드 중… '+(i+1)+'/'+entry.parts);
-   const response=await fetch(apiBase+'/api/data?id='+encodeURIComponent(entry.id)+'&part='+i+'&v='+encodeURIComponent(entry.sha256));
-   if(!response.ok)throw Error('HTTP '+response.status);
-   parts.push(await response.blob());
+   const res=await fetch(base+'/api/data?id='+encodeURIComponent(entry.id)+'&part='+i+'&v='+entry.sha256);
+   if(!res.ok)throw Error(entry.name+' HTTP '+res.status);parts.push(await res.blob());
   }
-  const packed=new Blob(parts);
-  message(entry.name+' 압축 해제 중…');
-  const blob=await new Response(packed.stream().pipeThrough(new DecompressionStream('gzip'))).blob();
-  if(blob.size!==entry.bytes)throw Error('데이터 크기가 원본과 다릅니다.');
-  message(entry.name+' 분석 데이터 연결 중…');
-  await new Promise(resolve=>setTimeout(resolve,30));
-  const file=new File([blob],entry.originalName,{type:entry.kind==='sns'?'application/json':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  if(entry.kind==='sns'){
-   if(!await window.SeenDashboard.importFiles([file],entry.id))throw Error(document.getElementById('importMessage').textContent||'SNS 연결 실패');
-   const ds=window.SeenDashboard.datasets.get(entry.id);
-   if(!ds)throw Error('국가 데이터가 연결되지 않았습니다.');
-   return {id:entry.id,posts:ds.postMap.size,images:ds.imageMap.size};
-  }
-  return {id:entry.id,...await window.CrossCheck.importBundledPlatform(file,entry.id)};
+  message(entry.name+' 데이터 연결 중…');
+  const blob=await new Response(new Blob(parts).stream().pipeThrough(new DecompressionStream('gzip'))).blob();
+  if(blob.size!==entry.bytes)throw Error(entry.name+' 크기 검증 실패');return blob;
  }
  try{
-  if(!('DecompressionStream' in window))throw Error('자동 로딩을 지원하는 최신 Chrome 또는 Edge로 열어주세요.');
-  if(!window.SeenDashboard||!window.CrossCheck)throw Error('대시보드 초기화 실패');
-  message('배포 데이터 확인 중…');
-  if(!apiBase)throw Error('데이터 서버 배포 및 연결 설정이 필요합니다.');
-  const response=await fetch(apiBase+'/api/data',{cache:'no-cache'});
-  if(!response.ok)throw Error('데이터 목록 HTTP '+response.status);
-  const manifest=await response.json();
+  if(!base)throw Error('데이터 서버 주소가 없습니다.');
+  const res=await fetch(base+'/api/data',{cache:'no-cache'});if(!res.ok)throw Error('자료 목록 HTTP '+res.status);const manifest=await res.json();
+  if(!manifest.analysis)throw Error('최신 AI 분석 서버가 아직 준비되지 않았습니다. 잠시 후 새로고침해 주세요.');
+  const ai=JSON.parse(await(await download(manifest.analysis)).text());window.SeenDashboard.setAIAnalyses(ai);
   for(const entry of manifest.entries){
-   try{results.push(await load(entry));}catch(error){failures.push({id:entry.id,message:error.message});console.error(entry.name+' 연결 실패:',error);}
+   try{
+    const blob=await download(entry),file=new File([blob],entry.originalName,{type:'application/json'});
+    if(entry.kind==='sns'){
+     if(!await window.SeenDashboard.importFiles([file],entry.id))throw Error(document.getElementById('importMessage').textContent);
+     const ds=window.SeenDashboard.datasets.get(entry.id);state.results.push({id:entry.id,posts:ds.postMap.size,images:ds.imageMap.size});
+    }else{
+     const data=await window.CrossCheck.readRankingFile(file,entry.id);window.CrossCheck.loadSavedRanking(entry.id,data,entry.originalName);
+     state.results.push({id:entry.id,rows:data.rankings.length});
+    }
+   }catch(error){state.failures.push({id:entry.id,message:error.message});console.error('자동 연결 실패',entry.id,error.message);}
   }
-  state.status=failures.length?'partial':'complete';
-  message(failures.length?'일부 데이터 연결 실패: '+failures.map(f=>f.id+' · '+f.message).join(' / '):'SNS 2개 · 쇼핑몰 3개 자동 연결 완료');
-  const close=document.createElement('button');close.type='button';close.textContent='닫기';close.onclick=()=>box.remove();box.append(close);
- }catch(error){state.status='failed';failures.push({message:error.message});message('자동 연결 실패: '+error.message);console.error(error);}
+  window.SeenDashboard.state.market='KR';window.SeenDashboard.renderAll();window.CrossCheck.dialog();
+  document.documentElement.dataset.snsAIReady=state.failures.length?'error':'true';
+  state.status=state.failures.length?'partial':'complete';
+  message(state.failures.length?'일부 자료 연결 실패: '+state.failures.map(e=>e.id+' '+e.message).join(' / '):'SNS 2개 · 쇼핑몰 3개 · AI 분석 자동 연결 완료');
+  const close=document.createElement('button');close.type='button';close.textContent='닫기';close.onclick=()=>status.remove();status.append(close);
+ }catch(error){state.status='failed';state.failures.push({message:error.message});document.documentElement.dataset.snsAIReady='error';message('자동 연결 실패: '+error.message);console.error(error.message);}
 })();

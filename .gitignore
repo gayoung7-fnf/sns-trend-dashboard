@@ -4,3 +4,6 @@ server/private/
 server/.vercel/
 .env*
 validation.json
+
+*-report.json
+ranking-*.json
