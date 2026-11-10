@@ -17,6 +17,7 @@
   if(blob.size!==entry.bytes)throw Error(entry.name+' 크기 검증 실패');return blob;
  }
  try{
+  if(window.FirstScreen)await window.FirstScreen.shown;
   if(!base)throw Error('데이터 서버 주소가 없습니다.');
   const res=await fetch(base+'/api/data',{cache:'no-cache'});if(!res.ok)throw Error('자료 목록 HTTP '+res.status);const manifest=await res.json();
   if(!manifest.analysis)throw Error('최신 AI 분석 서버가 아직 준비되지 않았습니다. 잠시 후 새로고침해 주세요.');
@@ -37,6 +38,7 @@
   document.documentElement.dataset.snsAIReady=state.failures.length?'error':'true';
   state.status=state.failures.length?'partial':'complete';
   message(state.failures.length?'일부 자료 연결 실패: '+state.failures.map(e=>e.id+' '+e.message).join(' / '):'SNS 2개 · 쇼핑몰 3개 · AI 분석 자동 연결 완료');
+  if(window.FirstScreen){if(state.failures.length)window.FirstScreen.fail();else window.FirstScreen.finish();}
   const close=document.createElement('button');close.type='button';close.textContent='닫기';close.onclick=()=>status.remove();status.append(close);
- }catch(error){state.status='failed';state.failures.push({message:error.message});document.documentElement.dataset.snsAIReady='error';message('자동 연결 실패: '+error.message);console.error(error.message);}
+ }catch(error){window.FirstScreen?.fail();state.status='failed';state.failures.push({message:error.message});document.documentElement.dataset.snsAIReady='error';message('자동 연결 실패: '+error.message);console.error(error.message);}
 })();
