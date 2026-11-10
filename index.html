@@ -4495,7 +4495,7 @@ function selectBarDesign(event){
 }
 document.addEventListener('click',selectBarDesign,true);
 document.addEventListener('keydown',selectBarDesign,true);
-window.SeenDashboard={setAIAnalyses:data=>{for(const key of Object.keys(snsAIAnalyses))delete snsAIAnalyses[key];Object.assign(snsAIAnalyses,data.analyses);},imagePerformance,getSNSInsight:(key)=>snsInsight(currentView?.typeMap.get(key)),getSNSSelection:()=>[...snsSelection(currentView)],designTrendWeeks,state,datasets,normalizeData,finalizeDataset,getView,aggregateTypes,attributeStats,weeklyPulse,renderAll,selectCategory,selectSubcategory,selectDesign,changeMarket,importFiles,getRange,weekStart,weekLabel,summary,evidenceFor,scopeTotals,cardAppearance,buildInsightGroups,attributeFilterStats,getInsightGroups:()=>insightGroups};
+window.SeenDashboard={setAIAnalyses:data=>{for(const key of Object.keys(snsAIAnalyses))delete snsAIAnalyses[key];Object.assign(snsAIAnalyses,data.analyses);snsAIItems.clear();for(const [market,analysis] of Object.entries(snsAIAnalyses))snsAIItems.set(market,new Map(analysis.items.map(item=>[item.design_key,item])));},imagePerformance,getSNSInsight:(key)=>snsInsight(currentView?.typeMap.get(key)),getSNSSelection:()=>[...snsSelection(currentView)],designTrendWeeks,state,datasets,normalizeData,finalizeDataset,getView,aggregateTypes,attributeStats,weeklyPulse,renderAll,selectCategory,selectSubcategory,selectDesign,changeMarket,importFiles,getRange,weekStart,weekLabel,summary,evidenceFor,scopeTotals,cardAppearance,buildInsightGroups,attributeFilterStats,getInsightGroups:()=>insightGroups};
 renderAll();
 
 })();</script>
