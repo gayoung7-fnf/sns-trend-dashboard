@@ -2430,6 +2430,16 @@ function canonicalFashionAttributes(category,attributes){
 }
 
 </script>
+<script id="sns-sample-policy">
+const SNS_SAMPLE_POLICY={"policy_id":"sns-sample-15-posts-5-accounts","post_count_min":15,"account_count_min":5,"operator":"OR","count_scope":"design_total_unique_posts_and_accounts"};
+function snsSampleInfo(postCount,accountCount){
+ const posts=Number(postCount),accounts=Number(accountCount);
+ if(!Number.isInteger(posts)||!Number.isInteger(accounts)||posts<0||accounts<0)throw Error('Invalid SNS sample counts');
+ const caution=posts<SNS_SAMPLE_POLICY.post_count_min||accounts<SNS_SAMPLE_POLICY.account_count_min;
+ return {caution,note:caution?`${posts}개 게시물·${accounts}개 계정의 제한된 관찰이며 시장 전체의 경향을 뜻하지 않습니다.`:null};
+}
+
+</script>
 <meta name="robots" content="noindex,nofollow,noarchive"><script src="./config.js"></script>
 <style>.pages-mode #settingsDialog .import-row,.pages-mode #settingsDialog .token-row,.pages-mode #settingsDialog [data-remove-market],.pages-mode #settingsDialog .file-button{display:none!important}#pagesLoadStatus{position:fixed;bottom:18px;right:18px;z-index:15000;max-width:min(440px,90vw);padding:12px 16px;background:#fff;color:#222;border:1px solid #bbb;border-radius:10px;box-shadow:0 3px 15px #0002;font:13px/1.6 sans-serif}#pagesLoadStatus button{margin-left:12px;cursor:pointer}</style><style id="instant-screen-style">html.instant-startup{scrollbar-gutter:auto!important}html.instant-startup,html.instant-startup body{overflow:hidden!important}html.instant-startup body>:not(#instant-screen):not(script){visibility:hidden!important}#instant-screen{position:fixed;inset:0;z-index:20000;background:#f8f7f1;opacity:1;transition:opacity .12s ease}#instant-screen iframe{width:100%;height:100%;border:0;display:block;background:#f8f7f1}#instant-screen.is-leaving{opacity:0;pointer-events:none}#instant-error{position:absolute;right:18px;bottom:18px;max-width:420px;padding:12px 16px;border:1px solid #e3dfd2;border-radius:8px;background:#fffef9;color:#5b554b;font:12px/1.6 Arial,'Malgun Gothic',sans-serif}#instant-error button{margin-left:10px;cursor:pointer}@media(prefers-reduced-motion:reduce){#instant-screen{transition:none}}</style>
 <link rel="preconnect" href="https://sns-trend-data.vercel.app" crossorigin>
@@ -2442,7 +2452,7 @@ function canonicalFashionAttributes(category,attributes){
  addEventListener('message',event=>{const frame=document.getElementById('instant-frame');if(event.origin!==apiOrigin||event.source!==frame?.contentWindow)return;if(event.data?.type==='first-screen-visible'){clearTimeout(fallback);signal();root.dataset.firstScreenVisible='true';}if(event.data?.type==='first-screen-scroll'&&Number.isFinite(event.data.y))scrollPosition=Math.max(0,event.data.y);});
  window.FirstScreen={shown:promise,ready:false,finish(){if(this.ready)return;this.ready=true;requestAnimationFrame(()=>{root.classList.remove('instant-startup');root.dataset.firstScreenStage='interactive';document.getElementById('pagesLoadStatus')?.remove();const overlay=document.getElementById('instant-screen');overlay?.classList.add('is-leaving');scrollTo({top:scrollPosition,behavior:'instant'});window.SeenDashboard?.resumeImages?.();setTimeout(()=>overlay?.remove(),150);});},fail(){root.dataset.firstScreenStage='error';const box=document.getElementById('instant-error');if(box){box.hidden=false;box.querySelector('button').onclick=()=>location.reload();}}};
 })();</script></head>
-<body><div id="instant-screen"><iframe id="instant-frame" title="완성된 대시보드 · 상세 탐색 준비 중" src="https://sns-trend-data.vercel.app/first-screen-de581ef9965b169b.html" loading="eager"></iframe><div id="instant-error" role="alert" hidden>상세 탐색 연결에 실패했습니다. 다시 시도해 주세요.<button type="button">다시 시도</button></div></div>
+<body><div id="instant-screen"><iframe id="instant-frame" title="완성된 대시보드 · 상세 탐색 준비 중" src="https://sns-trend-data.vercel.app/first-screen-1cb4bec61071cd07.html" loading="eager"></iframe><div id="instant-error" role="alert" hidden>상세 탐색 연결에 실패했습니다. 다시 시도해 주세요.<button type="button">다시 시도</button></div></div>
 <a class="skip-link" href="#main">본문으로 이동</a>
 <header class="top-strip">
  <a class="brand-home" href="#" data-action="home" aria-label="F&F · MLB · SNS FASHION TREND SIGNALS 전체 흐름">F&amp;F · MLB · SNS FASHION TREND SIGNALS</a>
@@ -3172,20 +3182,18 @@ window.CrossCheck.chip=(key,w)=>unifiedRankBadge(key,w);
 window.CrossCheck.moverCompact=(key,w)=>unifiedRankBadge(key,w,true);
 window.CrossCheck.moverRank=(key,w)=>unifiedRankBadge(key,w,true);
 function evaluateShoppingSignal(contexts,isSubcategory){
- const available=contexts.filter(x=>x.c.ok&&x.c.complete);
- const full=available.filter(x=>x.c.top.length>=30);
- const downgraded=isSubcategory&&available.length>0&&full.length===0;
- const used=isSubcategory&&full.length?full:available;
+ const available=contexts.filter(x=>x.c.ok&&x.c.complete),used=available;
  const ranked=used.filter(x=>x.c.count>0&&Number.isFinite(x.c.best)).map(x=>{
   const count=x.c.count,top10=x.c.matched.filter(p=>p.rank<=10).length,top15=x.c.matched.filter(p=>p.rank<=15).length,top20=x.c.matched.filter(p=>p.rank<=20).length;
   const rawLevel=isSubcategory?(count>=7&&top10>=2?2:count>=3||top20>=1?1:0):(count>=4&&top15>=1?2:count>=3||top15>=1?1:0);
-  return {...x,top10,top15,top20,rawLevel};
+  const downgraded=isSubcategory&&x.c.top.length<=20,level=downgraded?Math.max(0,rawLevel-1):rawLevel;
+  return {...x,top10,top15,top20,rawLevel,level,downgraded};
  });
- if(!ranked.length)return {level:null,rawLevel:null,basis:[],ranked,available,used,downgraded,isSubcategory,contexts};
- const rawLevel=Math.max(...ranked.map(x=>x.rawLevel)),level=downgraded?Math.max(0,rawLevel-1):rawLevel;
- return {level,rawLevel,basis:ranked.filter(x=>x.rawLevel===rawLevel),ranked,available,used,downgraded,isSubcategory,contexts};
+ if(!ranked.length)return {level:null,rawLevel:null,basis:[],ranked,available,used,downgraded:false,isSubcategory,contexts};
+ const level=Math.max(...ranked.map(x=>x.level)),basis=ranked.filter(x=>x.level===level),rawLevel=Math.max(...basis.map(x=>x.rawLevel));
+ return {level,rawLevel,basis,ranked,available,used,downgraded:basis.some(x=>x.downgraded),isSubcategory,contexts};
 }
-window.CrossCheck.signalRules={category:{strong:{count:4,rank:15,rankCount:1},mid:{count:3,rank:15,rankCount:1}},subcategory:{strong:{count:7,rank:10,rankCount:2},mid:{count:3,rank:20,rankCount:1}},shortListPolicy:'prefer-full30-otherwise-downgrade-one'};
+window.CrossCheck.signalRules={category:{strong:{count:4,rank:15,rankCount:1},mid:{count:3,rank:15,rankCount:1}},subcategory:{strong:{count:7,rank:10,rankCount:2},mid:{count:3,rank:20,rankCount:1}},shortListPolicy:'include-all-downgrade-each-platform-at-most20',shortListThreshold:20};
 window.CrossCheck.evaluateShoppingSignal=evaluateShoppingSignal;
 window.CrossCheck.signalEvaluation=(key,w)=>evaluateShoppingSignal(activePlatforms().map(id=>({id,c:onPlatform(id,()=>context(key,w,'auto'))})),!!api().state.subcat);
 window.CrossCheck.statusBadge=(key,w)=>{
@@ -3193,7 +3201,7 @@ window.CrossCheck.statusBadge=(key,w)=>{
  const names=['약함','보통','강함'],sub=result.isSubcategory;
  const payload={level:result.level,rawLevel:result.rawLevel,sub,downgraded:result.downgraded,range:result.available[0]?.c.range||'',basis:result.basis.map(x=>platforms[x.id].name),rows:result.contexts.map(x=>{
   const a=result.ranked.find(p=>p.id===x.id),used=result.used.some(p=>p.id===x.id),available=result.available.some(p=>p.id===x.id);
-  return {name:platforms[x.id].name,total:x.c.top?.length??null,count:x.c.count??null,top:x.c.matched?.filter(p=>p.rank<=(sub?10:15)).length??null,top20:sub?x.c.matched?.filter(p=>p.rank<=20).length??null:null,rawLevel:a?.rawLevel??null,basis:result.basis.some(p=>p.id===x.id),status:!available?'자료 없음':!used?'판정 제외':!a?'미관찰':names[a.rawLevel],reason:!available?x.c.reason:!used?'30개 미만 목록':''};})};
+  return {name:platforms[x.id].name,total:x.c.top?.length??null,count:x.c.count??null,top:x.c.matched?.filter(p=>p.rank<=(sub?10:15)).length??null,top20:sub?x.c.matched?.filter(p=>p.rank<=20).length??null:null,rawLevel:a?.rawLevel??null,level:a?.level??null,downgraded:!!a?.downgraded,basis:result.basis.some(p=>p.id===x.id),status:!available?'자료 없음':!a?'미관찰':names[a.level],reason:!available?x.c.reason:a?.downgraded?(a.rawLevel===a.level?'20개 이하 · 유지':names[a.rawLevel]+' → '+names[a.level]):''};})};
  return '<span class="design-signal-tier xc-status xc-integrated unified-shop-badge shop-signal-trigger" tabindex="0" role="button" aria-expanded="false" aria-label="쇼핑몰 '+names[result.level]+' · 판정 근거 보기" data-shop-strength="'+['weak','mid','strong'][result.level]+'" data-shop-tip="'+esc(JSON.stringify(payload))+'"><span class="shop-strength-meter" aria-hidden="true">'+[0,1,2].map(i=>'<b'+(i>result.level?' class="off"':'')+'></b>').join('')+'</span>쇼핑몰 '+names[result.level]+'</span>';
 };
 let shopTipAnchor=null,shopTipTimer=null,shopTip=null;
@@ -3203,9 +3211,9 @@ function showShopSignalTooltip(anchor){
  hideShopSignalTooltip();const d=JSON.parse(anchor.dataset.shopTip),names=['약함','보통','강함'];
  if(!shopTip){shopTip=document.createElement('div');shopTip.id='shopSignalTooltip';shopTip.setAttribute('role','tooltip');document.body.append(shopTip);}
  shopTipAnchor=anchor;anchor.setAttribute('aria-expanded','true');anchor.setAttribute('aria-describedby',shopTip.id);
- const policy=d.sub?(d.downgraded?'30개 미만 목록만 있어 '+names[d.rawLevel]+' → '+names[d.level]+' 보정':'30개를 채운 플랫폼만 판정'):'플랫폼별 최고 판정 사용';
+ const policy=d.sub?'30개 미만도 포함 · 20개 이하 목록은 플랫폼별 한 단계 하향':'플랫폼별 최고 판정 사용';
  const strong=d.sub?'7개 이상 + Top 10에 2개 이상':'4개 이상 + Top 15에 1개 이상',mid=d.sub?'3개 이상 또는 Top 20에 1개 이상':'3개 이상 또는 Top 15에 1개 이상';
- shopTip.innerHTML='<div class="shop-tip-head"><strong>쇼핑몰 '+names[d.level]+'</strong><span>'+esc(d.sub?'서브카테고리':'상위 카테고리')+(d.range?' · '+esc(d.range):'')+'</span></div><div class="shop-tip-basis"><span>판정 근거</span><b>'+esc(d.basis.join(' · '))+'</b></div><table class="shop-tip-table"><thead><tr><th>플랫폼</th><th>동일 / 목록</th><th>'+ (d.sub?'Top 10 / 20':'Top 15')+'</th><th>원판정</th></tr></thead><tbody>'+d.rows.map(r=>'<tr'+(r.basis?' class="is-basis"':'')+'><th scope="row">'+esc(r.name)+(r.basis?'<small>근거</small>':'')+'</th><td>'+(r.count??'—')+' <span>/ '+(r.total??'—')+'</span></td><td>'+(r.top??'—')+(d.sub?' <span>/ '+(r.top20??'—')+'</span>':'')+'</td><td>'+esc(r.status)+(r.reason&&r.status==='판정 제외'?'<small>30개 미만</small>':'')+'</td></tr>').join('')+'</tbody></table><div class="shop-tip-policy">'+esc(policy)+'</div><div class="shop-tip-rules"><div><b>강함 <small>(약 '+(d.sub?'30':'40')+'%)</small></b><span>'+strong+'</span></div><div><b>보통 <small>(약 '+(d.sub?'50':'40')+'%)</small></b><span>'+mid+'</span></div><div><b>약함 <small>(약 20%)</small></b><span>관찰 상품은 있으나 위 기준 미달</span></div></div><div class="shop-tip-foot">상품 수는 플랫폼별로 판정하며 합산하지 않습니다.</div>';
+ shopTip.innerHTML='<div class="shop-tip-head"><strong>쇼핑몰 '+names[d.level]+'</strong><span>'+esc(d.sub?'서브카테고리':'상위 카테고리')+(d.range?' · '+esc(d.range):'')+'</span></div><div class="shop-tip-basis"><span>판정 근거</span><b>'+esc(d.basis.join(' · '))+'</b></div><table class="shop-tip-table"><thead><tr><th>플랫폼</th><th>동일 / 목록</th><th>'+ (d.sub?'Top 10 / 20':'Top 15')+'</th><th>플랫폼 판정</th></tr></thead><tbody>'+d.rows.map(r=>'<tr'+(r.basis?' class="is-basis"':'')+'><th scope="row">'+esc(r.name)+(r.basis?'<small>근거</small>':'')+'</th><td>'+(r.count??'—')+' <span>/ '+(r.total??'—')+'</span></td><td>'+(r.top??'—')+(d.sub?' <span>/ '+(r.top20??'—')+'</span>':'')+'</td><td>'+esc(r.status)+(r.reason&&r.downgraded?'<small>'+esc(r.reason)+'</small>':'')+'</td></tr>').join('')+'</tbody></table><div class="shop-tip-policy">'+esc(policy)+'</div><div class="shop-tip-rules"><div><b>강함 <small>(약 '+(d.sub?'30':'40')+'%)</small></b><span>'+strong+'</span></div><div><b>보통 <small>(약 '+(d.sub?'50':'40')+'%)</small></b><span>'+mid+'</span></div><div><b>약함 <small>(약 20%)</small></b><span>관찰 상품은 있으나 위 기준 미달</span></div></div><div class="shop-tip-foot">플랫폼별 보정 후 최고 판정을 사용하며 상품 수는 합산하지 않습니다.</div>';
  shopTip.hidden=false;positionShopSignalTooltip(anchor);
 }
 function positionShopSignalTooltip(anchor){
@@ -3725,10 +3733,10 @@ function syncIssuePanelSize(){
 
 function snsOnly_weeklyHTML(v){
  const p=v.pulse,ready=!!v.ds&&p.observed;
- const focusTypes=aggregateTypes(v.periodRows.filter(r=>weekStart(r.day)===p.focus));
+ const summaryTypeCount=v.types.length;
  const crossByAccounts=[...p.cross].sort((a,b)=>b.accountCount-a.accountCount||b.count-a.count||a.label.localeCompare(b.label));
  const entries=[['BEST ITEM',crossByAccounts,ready,''],['RISING',p.rising,ready&&p.comparison,'k'],['NEW',p.newEntries,ready&&p.history,'v'],['STEADY',p.persistent,ready&&p.streakEligible,'a']];
- const cards=entries.map(([label,list,valid,cls],i)=>{const t=valid?list[0]:null;const cardNote=i===0?`${p.focus!==null?shortWeek(p.focus):'기준 주차'} · 2명 이상 교차`:i===1?`${p.previousWeek!==null?shortWeek(p.previousWeek):'직전 주차'} 대비 게시물·크리에이터 증가`:i===2?'선택한 기간 안에서 첫 등장':'현재 주차까지 3주 이상 연속';const typeNote=!valid?(!v.ds?'분석 데이터 연결 전':i===1?'직전 주 분석 표본 없음':i===2?'이전 관찰 이력 없음':i===3?'3주 이상 기간에서 표시':'기준 주차 관찰 없음'):!t?'해당 신호 없음':i===0?`${N(t.accountCount)}명 착용 · 최다 계정`:i===1?`게시물 ${signed(t.postDelta)} · 계정 ${signed(t.creatorDelta)}`:i===2?`${N(t.accountCount)}명 · Period 내 첫 등장`:`${t.streak}주 연속 · 최장 지속`;return `<button type="button" class="flow-card flow-signal ${cls}" ${t?`data-pulse-key="${E(t.key)}"`:'disabled'}><div class="flow-lab"><span>${i===0?'<span class="best-word">BEST</span> ITEM':label}</span></div><div class="flow-value-row"><div class="flow-count"><div class="flow-num">${valid?N(list.length):'—'}<small>/ ${ready?N(focusTypes.length):'—'} <span class="flow-unit">types</span></small></div><div class="flow-sub flow-card-note">${E(cardNote)}</div></div><div class="flow-name"><b>${t?E(t.label):'—'}</b><span class="flow-sub flow-type-note">${E(typeNote)}</span></div></div></button>`;}).join('');
+ const cards=entries.map(([label,list,valid,cls],i)=>{const t=valid?list[0]:null;const cardNote=i===0?`${p.focus!==null?shortWeek(p.focus):'기준 주차'} · 2명 이상 교차`:i===1?`${p.previousWeek!==null?shortWeek(p.previousWeek):'직전 주차'} 대비 게시물·크리에이터 증가`:i===2?'선택한 기간 안에서 첫 등장':'현재 주차까지 3주 이상 연속';const typeNote=!valid?(!v.ds?'분석 데이터 연결 전':i===1?'직전 주 분석 표본 없음':i===2?'이전 관찰 이력 없음':i===3?'3주 이상 기간에서 표시':'기준 주차 관찰 없음'):!t?'해당 신호 없음':i===0?`${N(t.accountCount)}명 착용 · 최다 계정`:i===1?`게시물 ${signed(t.postDelta)} · 계정 ${signed(t.creatorDelta)}`:i===2?`${N(t.accountCount)}명 · Period 내 첫 등장`:`${t.streak}주 연속 · 최장 지속`;return `<button type="button" class="flow-card flow-signal ${cls}" ${t?`data-pulse-key="${E(t.key)}"`:'disabled'}><div class="flow-lab"><span>${i===0?'<span class="best-word">BEST</span> ITEM':label}</span></div><div class="flow-value-row"><div class="flow-count"><div class="flow-num">${valid?N(list.length):'—'}<small title="분모: 현재 선택한 기간·필터에서 관찰된 전체 디자인타입 수. 분자: 기준 주차의 해당 신호 디자인타입 수.">/ ${v.ds?N(summaryTypeCount):'—'} <span class="flow-unit">types</span></small></div><div class="flow-sub flow-card-note">${E(cardNote)}</div></div><div class="flow-name"><b>${t?E(t.label):'—'}</b><span class="flow-sub flow-type-note">${E(typeNote)}</span></div></div></button>`;}).join('');
  const comparisonLabel=p.focus!==null?`${weekLabel(p.focus)} · ${shortWeek(p.focus-7)} 대비`:'기준 주차 대기';
  const moverHTML=t=>`<button class="weekly-mover" type="button" data-kind="${t.kind}" data-pulse-key="${E(t.key)}" title="${E(t.label+' · '+signalNote(t,t.kind))}"><span class="weekly-mover-kind">${{rise:'Rising',new:'New',steady:'Steady'}[t.kind]}</span><span class="weekly-mover-copy"><span class="weekly-mover-name">${E(t.label)}</span><span class="weekly-mover-note">${E(t.kind==='rise'?`크리에이터 ${signed(t.creatorDelta)} · 게시물 ${signed(t.postDelta)}`:signalNote(t,t.kind))}</span></span><span class="weekly-mover-delta">${t.kind==='new'?'NEW':t.kind==='steady'?`${t.streak}W`:signed(t.postDelta)}</span></button>`;
  return `<section class="flow-summary" aria-label="전체 흐름 Summary"><div class="flow-cards">${cards}</div>
@@ -3739,10 +3747,10 @@ function snsOnly_weeklyHTML(v){
 function weeklyHTML(v){
  if(state.market!=='KR')return snsOnly_weeklyHTML(v);
  const p=v.pulse,ready=!!v.ds&&p.observed;
- const focusTypes=aggregateTypes(v.periodRows.filter(r=>weekStart(r.day)===p.focus));
+ const summaryTypeCount=v.types.length;
  const crossByAccounts=[...p.cross].sort((a,b)=>b.accountCount-a.accountCount||b.count-a.count||a.label.localeCompare(b.label));
  const entries=[['BEST ITEM',crossByAccounts,ready,''],['RISING',p.rising,ready&&p.comparison,'k'],['NEW',p.newEntries,ready&&p.history,'v'],['STEADY',p.persistent,ready&&p.streakEligible,'a']];
- const cards=entries.map(([label,list,valid,cls],i)=>{const t=valid?list[0]:null;const cardNote=i===0?`${p.focus!==null?shortWeek(p.focus):'기준 주차'} · 2명 이상 교차`:i===1?`${p.previousWeek!==null?shortWeek(p.previousWeek):'직전 주차'} 대비 게시물·크리에이터 증가`:i===2?'선택한 기간 안에서 첫 등장':'현재 주차까지 3주 이상 연속';const typeNote=!valid?(!v.ds?'분석 데이터 연결 전':i===1?'직전 주 분석 표본 없음':i===2?'이전 관찰 이력 없음':i===3?'3주 이상 기간에서 표시':'기준 주차 관찰 없음'):!t?'해당 신호 없음':i===0?`${N(t.accountCount)}명 착용 · 최다 계정`:i===1?`게시물 ${signed(t.postDelta)} · 계정 ${signed(t.creatorDelta)}`:i===2?`${N(t.accountCount)}명 · Period 내 첫 등장`:`${t.streak}주 연속 · 최장 지속`;return `<button type="button" class="flow-card flow-signal ${cls}" ${t?`data-pulse-key="${E(t.key)}"`:'disabled'}><div class="flow-lab"><span>${i===0?'<span class="best-word">BEST</span> ITEM':label}</span><span class="platform-summary-chips">${t?CrossCheck.chip(t.key,p.focus):''}</span></div><div class="flow-value-row"><div class="flow-count"><div class="flow-num">${valid?N(list.length):'—'}<small>/ ${ready?N(focusTypes.length):'—'} <span class="flow-unit">types</span></small></div><div class="flow-sub flow-card-note">${E(cardNote)}</div></div><div class="flow-name"><b>${t?E(t.label):'—'}</b><span class="flow-sub flow-type-note">${E(typeNote)}</span></div></div></button>`;}).join('');
+ const cards=entries.map(([label,list,valid,cls],i)=>{const t=valid?list[0]:null;const cardNote=i===0?`${p.focus!==null?shortWeek(p.focus):'기준 주차'} · 2명 이상 교차`:i===1?`${p.previousWeek!==null?shortWeek(p.previousWeek):'직전 주차'} 대비 게시물·크리에이터 증가`:i===2?'선택한 기간 안에서 첫 등장':'현재 주차까지 3주 이상 연속';const typeNote=!valid?(!v.ds?'분석 데이터 연결 전':i===1?'직전 주 분석 표본 없음':i===2?'이전 관찰 이력 없음':i===3?'3주 이상 기간에서 표시':'기준 주차 관찰 없음'):!t?'해당 신호 없음':i===0?`${N(t.accountCount)}명 착용 · 최다 계정`:i===1?`게시물 ${signed(t.postDelta)} · 계정 ${signed(t.creatorDelta)}`:i===2?`${N(t.accountCount)}명 · Period 내 첫 등장`:`${t.streak}주 연속 · 최장 지속`;return `<button type="button" class="flow-card flow-signal ${cls}" ${t?`data-pulse-key="${E(t.key)}"`:'disabled'}><div class="flow-lab"><span>${i===0?'<span class="best-word">BEST</span> ITEM':label}</span><span class="platform-summary-chips">${t?CrossCheck.chip(t.key,p.focus):''}</span></div><div class="flow-value-row"><div class="flow-count"><div class="flow-num">${valid?N(list.length):'—'}<small title="분모: 현재 선택한 기간·필터에서 관찰된 전체 디자인타입 수. 분자: 기준 주차의 해당 신호 디자인타입 수.">/ ${v.ds?N(summaryTypeCount):'—'} <span class="flow-unit">types</span></small></div><div class="flow-sub flow-card-note">${E(cardNote)}</div></div><div class="flow-name"><b>${t?E(t.label):'—'}</b><span class="flow-sub flow-type-note">${E(typeNote)}</span></div></div></button>`;}).join('');
  const comparisonLabel=p.focus!==null?`${weekLabel(p.focus)} · ${shortWeek(p.focus-7)} 대비`:'기준 주차 대기';
  const moverNote=t=>{
  if(t.kind==='rise')return `크리에이터 ${signed(t.creatorDelta)} · 게시물 ${signed(t.postDelta)}`;
@@ -4055,7 +4063,8 @@ function snsInsight(t){
  const refs=new Set(entry.evidence_refs.map(e=>e.mediaId+'|'+e.item_index+':'+e.garment_index));
  const rows=t.rows.filter(r=>refs.has(r.mediaId+'|'+r.itemIndex));
  const chosen=attrs.length?{attrs,rows,count:entry.combination?.post_count??attrs[0].count,den:entry.combination?.common_valid_posts??attrs[0].den,accounts:entry.combination?.account_count}:null;
- return {line:entry.line,chosen,reasons,pending:false,rationale:entry.selection_rationale,sampleCaution:!!entry.sample_note,sampleNote:entry.sample_note,status:entry.status,analysis:entry};
+ const sample=snsSampleInfo(t.count,t.accountCount);
+ return {line:entry.line,chosen,reasons,pending:false,rationale:entry.selection_rationale,sampleCaution:sample.caution,sampleNote:sample.note,status:entry.status,analysis:entry};
 }
 function actionBoxHTML(t){
  const ins=snsInsight(t);if(!ins)return '';aiRegistry.set(t.key,t);
@@ -4082,7 +4091,7 @@ function openActionDrawer(key,opener){
  const rationale=(ins.rationale||'').replace(/최신 14F 근거로 재확인했다\.?/g,'').trim();
  const shop=state.market==='KR'?CrossCheck.attrFoot(t.key,currentView.pulse.focus,null,'card').replace(/<details class="xc-evidence"[^>]*>/,'<div class="sns-shop-expanded">').replace(/<summary>[\s\S]*?<\/summary>/,'').replace(/<\/details>(?=<\/div>$)/,'</div>'):'';
  setImagePreservingHTML(el,`${aiGroupType?'<button class="ai-back" data-ai-back>← 한줄 인사이트 목록</button>':''}<div class="ai-drawer-head"><div><span class="section-kicker">ISSUE DESIGN · ${E(t.category)} · ${E(String(t.subcat).split("::").at(-1))}</span><h3 class="ai-drawer-title" id="aiDrawerTitle">${E(t.label)}</h3><span class="ai-drawer-meta">${N(t.count)} posts · ${N(t.accountCount)} creators</span></div><button class="ai-drawer-close" data-ai-close aria-label="닫기">×</button></div>
- <div class="ai-say"><div class="sns-analysis-label"><span class="sns-analysis-symbol" aria-hidden="true">✦</span> AI 한줄 분석</div><p class="sns-summary-text">${E(ins.line)}</p>${ins.sampleCaution?'<span class="sns-sample-chip">제한된 관찰 표본</span>':''}</div>
+ <div class="ai-say"><div class="sns-analysis-label"><span class="sns-analysis-symbol" aria-hidden="true">✦</span> AI 한줄 분석</div><p class="sns-summary-text">${E(ins.line)}</p>${ins.sampleCaution?'<span class="sns-sample-chip" title="게시물 15개 미만 또는 관찰 계정 5명 미만일 때 표시합니다.">제한된 관찰 표본</span>':''}</div>
  <details class="sns-analysis-info"><summary>분석 정보<span aria-hidden="true">＋</span></summary><div>${rationale?`<p><b>특징 선택</b>${E(rationale)}</p>`:''}<p><b>분석 대상 선정</b>${ins.reasons.map(r=>`<span class="sns-criteria-chip">${E(r)}</span>`).join('')}</p></div></details>
  <section class="ai-evidence"><div class="sns-section-head"><h4>SNS 관찰 근거</h4><span title="속성별 Top 1 우선 배정 · 값없음 제외">유효 게시물 기준</span></div>${c?`<table class="ai-mini-proof"><thead><tr><th scope="col">속성</th><th scope="col" title="관찰 건수 / 해당 속성군에 값이 있는 게시물 수">건수 / 유효</th><th scope="col">비중</th></tr></thead><tbody>${rows}</tbody></table>${c.attrs.length>1?`<div class="sns-joint-proof"><div class="sns-joint-title">같은 옷에서 함께 관찰</div><div class="sns-joint-metrics"><div><strong>${N(c.count)}<small> / ${N(c.den)}</small></strong><span title="선택 속성군에 모두 값이 있는 게시물 기준">공통 유효 게시물</span></div><div><strong>${pct(c.count,c.den)}</strong><span>조합 비중</span></div><div><strong>${N(c.accounts)}</strong><span>관찰 계정</span></div></div></div>`:''}`:`<div class="sns-proof-empty">${ins.pending?'현재 조건의 분석 미생성':'대표 속성 근거 부족'}</div>`}</section>
  <section class="ai-examples"><div class="sns-section-head"><h4>${c?'해당 속성 참고 착장':'디자인 참고 착장'}</h4></div>${examples.length?`<div class="ai-example-grid">${examples.map(previewHTML).join('')}</div>`:'<p class="sns-footnote">연결 가능한 이미지가 없어요.</p>'}</section>
